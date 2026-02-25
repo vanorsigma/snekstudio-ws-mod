@@ -1,0 +1,7 @@
+[gd_scene format=3 uid="uid://cnguaeioniaah"]
+
+[ext_resource type="Script" uid="uid://7tqnohttbm6i" path="res://Mods/WebSocketServer/WebSocketServer.gd" id="1_c1u6c"]
+
+[node name="WebSocketServer" type="Node3D" unique_id=1858830931]
+script = ExtResource("1_c1u6c")
+metadata/_custom_type_script = "uid://bsjotf2wtnmeq"

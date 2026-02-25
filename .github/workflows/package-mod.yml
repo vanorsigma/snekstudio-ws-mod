@@ -1,0 +1,27 @@
+name: Package WebSocketServer Mod
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Structure and Zip Folders
+        run: |
+          mkdir -p Mods/WebSocketServer
+          shopt -s extglob
+          mv !(Mods|.git|.github) Mods/WebSocketServer/
+          zip -r WebSocketServer.zip Mods/
+
+      - name: Upload Resulting Zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: WebSocketServer-Package
+          path: WebSocketServer.zip

@@ -1,0 +1,1 @@
+Exposes a WebSocket server for outside scripts to interact with SnekStudio.
