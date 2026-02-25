@@ -23,5 +23,5 @@ jobs:
       - name: Upload Resulting Zip
         uses: actions/upload-artifact@v4
         with:
-          name: WebSocketServer-Package
+          name: WebSocketServer
           path: WebSocketServer.zip
