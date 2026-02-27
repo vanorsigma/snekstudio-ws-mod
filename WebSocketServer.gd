@@ -54,6 +54,21 @@ func _find_mod_from_mods(mods: Node, target_name: String) -> Mod_Base:
 	print("Did not find " + target_name + " mod")
 	return null
 
+func _find_blendshape_mod_from_mods(mods: Node, target_name: String) -> Mod_Base:
+	print("Looking for ", target_name, " in mods")
+	for mod in mods.get_children():
+		var is_blendshape = mod.get_script().resource_path.contains("BlendShapeOverride")
+		if mod is not Mod_Base and not is_blendshape:
+			continue
+
+		var mod_name = mod.get_name()
+		if mod_name != target_name:
+			continue
+
+		return mod
+	print("Did not find " + target_name + " blendshape mod")
+	return null
+
 func _on_ws_callback(data: Dictionary):
 	var command_name = data.get("command_name")
 	var args = data.get("args")
@@ -69,6 +84,35 @@ func _on_ws_callback(data: Dictionary):
 	print("Received command '", command_name, "'")
 
 	match command_name:
+		"toggle_blendshape":
+			var target_name = args.get("name")
+			var mods: Node = get_app().get_node("Mods")
+			var mod = _find_blendshape_mod_from_mods(mods, target_name)
+			if mod == null:
+				return
+
+			_toggle_blendshape(mod)
+
+		"set_blendshape_value":
+			var target_name: String = args.get("name")
+			var target_value_raw: float = args.get("value")
+
+			var mods: Node = get_app().get_node("Mods")
+			var mod = _find_blendshape_mod_from_mods(mods, target_name)
+			if mod == null:
+				return
+
+			_set_blendshape_value(mod, target_value_raw)
+
+		"toggle_blendshape":
+			var target_name = args.get("name")
+			var mods: Node = get_app().get_node("Mods")
+			var mod = _find_blendshape_mod_from_mods(mods, target_name)
+			if mod == null:
+				return
+
+			_toggle_blendshape(mod)
+
 		"toggle_mod":
 			var target_name = args.get("name")
 			var mods: Node = get_app().get_node("Mods")
@@ -149,6 +193,25 @@ func _disable_mod(mods: Node, mod: Mod_Base, index: int):
 
 	mods.add_child(placeholder)
 	mods.move_child(placeholder, index)
+
+func _set_blendshape_value(mod: Mod_Base, newValue: float):
+	mod.set("blendshape_value", newValue)
+	var blendshape_name = mod.get("blendshape_name")
+	var blend_shape_dict : Dictionary = get_global_mod_data("BlendShapes")
+	if blend_shape_dict.has(blendshape_name):
+		blend_shape_dict.erase(blendshape_name)
+
+func _toggle_blendshape(mod: Mod_Base):
+	var value: float = mod.get("blendshape_value")
+
+	if value == null:
+		print("Cannot get blendshape value from settings")
+		return
+
+	if value < 1.0:
+		_set_blendshape_value(mod, 1.0)
+	else:
+		_set_blendshape_value(mod, 0.0)
 
 func _toggle_mod(mods: Node, mod: Mod_Base, index: int):
 	var is_disabled: bool = mod.get_script().resource_path.contains("DisabledMod")
