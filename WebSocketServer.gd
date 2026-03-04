@@ -84,6 +84,16 @@ func _on_ws_callback(data: Dictionary):
 	print("Received command '", command_name, "'")
 
 	match command_name:
+		"rotate_model":
+			var duration = args.get("duration", 1)
+			var from = args.get("from", 360)
+			var to = args.get("to", 0)
+			var axis = args.get("axis", "y")
+			var model = get_app().get_model()
+			var tween = create_tween()
+			tween.tween_property(model, "rotation_degrees:%s"%axis, to, duration).from(from)
+			await tween.finished
+
 		"toggle_blendshape":
 			var target_name = args.get("name")
 			var mods: Node = get_app().get_node("Mods")
