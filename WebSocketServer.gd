@@ -5,11 +5,17 @@ var ws_server = TCPServer.new()
 var ws_clients: Array[WebSocketPeer] = []
 var websocket_server_port: int = 8080
 
+var _rotate_callback: Variant = null
+
 func _ready():
 	add_tracked_setting("websocket_server_port", "Modifies the WebSocket RPC server port")
 	update_settings_ui()
 
-func _process(_delta: float):
+func _process(delta: float):
+	if _rotate_callback:
+		var cb: Callable = _rotate_callback
+		cb.call(delta)
+
 	if ws_server.is_connection_available():
 		var tcp_conn = ws_server.take_connection()
 		var ws_conn = WebSocketPeer.new()
@@ -69,6 +75,36 @@ func _find_blendshape_mod_from_mods(mods: Node, target_name: String) -> Mod_Base
 	print("Did not find " + target_name + " blendshape mod")
 	return null
 
+func _rotate_model_callback(delta: float, from: int, to: int, duration: float) -> void:
+	# TODO: Currently broken, because the head seems to be moving based on
+	# tracker yaw which changes things
+	var mods: Node = get_app().get_node("Mods")
+	var mod: Mod_Base = _find_mod_from_mods(mods, "PoseIk")
+	assert(mod, "Cannot find PoseIK mod; it needs to be called PoseIk")
+	print(from, to, duration)
+
+	var delta_angle = ((to - from) / duration) * delta
+	print("Delta", delta)
+	print("Duration", duration)
+	var head: Node = mod.get_node("Head")
+	var model = get_app().get_model()
+	assert(head, "cannot find head we explode now")
+	model.rotation_degrees.y += delta_angle
+	var rotation_transform : Transform3D = Transform3D(
+		Basis.from_euler(Vector3(0.0, model.rotation_degrees.y * PI/180.0, 0.0)),
+		Vector3(0.0, 0.0, 0.0))
+
+	var trackers : Dictionary = get_global_mod_data("trackers")
+	if "head" in trackers:
+		if trackers["head"]["active"]:
+			trackers["head"]["transform"] = rotation_transform * trackers["head"]["transform"]
+			head.global_transform = trackers["head"]["transform"]
+
+	if model.rotation_degrees.y >= 180:
+		_rotate_callback = null
+		model.rotation_degrees.y = 0
+
+
 func _on_ws_callback(data: Dictionary):
 	var command_name = data.get("command_name")
 	var args = data.get("args")
@@ -86,13 +122,10 @@ func _on_ws_callback(data: Dictionary):
 	match command_name:
 		"rotate_model":
 			var duration = args.get("duration", 1)
-			var from = args.get("from", 360)
-			var to = args.get("to", 0)
-			var axis = args.get("axis", "y")
-			var model = get_app().get_model()
-			var tween = create_tween()
-			tween.tween_property(model, "rotation_degrees:%s"%axis, to, duration).from(from)
-			await tween.finished
+			var from = args.get("from", -180)
+			var to = args.get("to", 180)
+			print("Duration from source", duration)
+			_rotate_callback = _rotate_model_callback.bind(from, to, duration)
 
 		"toggle_blendshape":
 			var target_name = args.get("name")
